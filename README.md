@@ -6,7 +6,7 @@
 
 **Real-time orbital simulation platform with AI-driven collision avoidance**
 
-[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Vercel-black?style=for-the-badge&logo=vercel)](https://frontend-7hohgjde1-rishabh8.vercel.app)
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Vercel-black?style=for-the-badge&logo=vercel)](https://frontend-silk-one-18fssednq0.vercel.app)
 [![Backend API](https://img.shields.io/badge/⚡_Backend_API-Render-46E3B7?style=for-the-badge&logo=render)](https://aether-acm-backend.onrender.com/docs)
 [![GitHub](https://img.shields.io/badge/GitHub-Divyav19%2FnasaIITD-181717?style=for-the-badge&logo=github)](https://github.com/Divyav19/nasaIITD)
 
@@ -23,7 +23,9 @@
 
 ## 🌍 Live Demo
 
-> **🔗 [https://frontend-7hohgjde1-rishabh8.vercel.app](https://frontend-7hohgjde1-rishabh8.vercel.app)**
+> **🔗 [https://frontend-silk-one-18fssednq0.vercel.app](https://frontend-silk-one-18fssednq0.vercel.app)**
+>
+> **⚡ Backend API Docs: [https://aether-acm-backend.onrender.com/docs](https://aether-acm-backend.onrender.com/docs)**
 
 The frontend is deployed on **Vercel** and the backend API on **Render** (free tier — first load may take ~30s to wake up).
 
