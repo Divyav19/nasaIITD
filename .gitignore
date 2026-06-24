@@ -24,6 +24,8 @@ frontend/.vite/
 .env
 .env.local
 .env.*.local
+# Note: .env.production is intentionally tracked (contains public API URL only)
+
 
 # IDE
 .vscode/
