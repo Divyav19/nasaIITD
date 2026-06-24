@@ -55,7 +55,7 @@ function TabBar({ tabs, active, onSelect }) {
 }
 
 export default function App() {
-  const { snapshot, error, loading } = useVisualization();
+  const { snapshot, error, loading, wsConnected } = useVisualization();
   const { step, stepping, stepSeconds, setStepSeconds } = useSimulation();
   const [selectedSat, setSelectedSat]   = useState(null);
   const [rightTab, setRightTab]         = useState('telemetry');
@@ -226,6 +226,7 @@ export default function App() {
                   snapshot={snapshot}
                   selectedSat={selectedSat}
                   onSelectSat={setSelectedSat}
+                  wsConnected={wsConnected}
                 />
               )}
 

@@ -1,9 +1,9 @@
+FROM ubuntu:22.04
+
 # ═══════════════════════════════════════════════════════════════════
 # Project AETHER — Autonomous Constellation Manager
 # Docker image: ubuntu:22.04 | Port: 8000 (0.0.0.0)
 # ═══════════════════════════════════════════════════════════════════
-
-FROM ubuntu:22.04
 
 # ── Avoid interactive prompts ──────────────────────────────────────
 ENV DEBIAN_FRONTEND=noninteractive

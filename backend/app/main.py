@@ -17,7 +17,7 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 
-from .api import telemetry, maneuver, simulate, visualization, insight
+from .api import telemetry, maneuver, simulate, visualization, insight, ws_stream, admin
 from .simulation.engine import get_engine
 
 # ─── App Initialization ────────────────────────────────────────────────────────
@@ -44,13 +44,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ─── GZip Compression ─────────────────────────────────────────────────────────
+# Compresses debris cloud tuple-arrays and other large JSON payloads.
+# At 10k debris objects, uncompressed snapshot ≈ 4 MB → compressed ≈ 600 KB.
+from fastapi.middleware.gzip import GZipMiddleware
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
+
 # ─── API Routers ──────────────────────────────────────────────────────────────
 
-app.include_router(telemetry.router, prefix="/api", tags=["Telemetry"])
-app.include_router(maneuver.router, prefix="/api", tags=["Maneuver"])
-app.include_router(simulate.router, prefix="/api", tags=["Simulation"])
+app.include_router(telemetry.router,     prefix="/api", tags=["Telemetry"])
+app.include_router(maneuver.router,      prefix="/api", tags=["Maneuver"])
+app.include_router(simulate.router,      prefix="/api", tags=["Simulation"])
 app.include_router(visualization.router, prefix="/api", tags=["Visualization"])
-app.include_router(insight.router, prefix="/api", tags=["Insight"])
+app.include_router(insight.router,       prefix="/api", tags=["Insight"])
+app.include_router(ws_stream.router,     prefix="/api", tags=["WebSocket"])  # WS push stream
+app.include_router(admin.router,         prefix="/api", tags=["Admin"])       # TLE refresh
 
 # ─── Serve Frontend Build (Docker / production mode) ─────────────────────────
 

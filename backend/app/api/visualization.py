@@ -1,22 +1,27 @@
-"""GET /api/visualization/snapshot — Full state snapshot for the frontend."""
+"""GET /api/visualization/snapshot — Full state snapshot, GZip-compressed."""
 
+import asyncio
 from fastapi import APIRouter
 from ..simulation.engine import get_engine
 
 router = APIRouter()
 
 
-@router.get("/visualization/snapshot")
+@router.get(
+    "/visualization/snapshot",
+    responses={200: {"description": "GZip-compressed JSON snapshot (tuple-array debris cloud)"}},
+)
 async def get_snapshot():
     """
-    Return a complete visualization snapshot of current simulation state.
+    Return a complete, GZip-compressed visualization snapshot.
 
-    Includes:
-      - All satellite positions (lat/lon/alt), fuel, status
-      - All debris positions (compressed flat arrays)
-      - Active CDM warnings with severity
-      - Scheduled burns (for Gantt chart)
-      - Global statistics
+    Debris cloud returned as flat tuple-arrays [id, lat, lon, alt_km] for
+    minimal wire size.  GZip applied automatically via GZipMiddleware
+    configured in main.py (threshold=500 bytes).
+
+    ECI→LLA conversion work for all objects dispatched to a thread pool
+    so the ASGI event loop stays non-blocking during large fleets.
     """
     engine = get_engine()
-    return engine.snapshot()
+    snap = await asyncio.to_thread(engine.snapshot)
+    return snap

@@ -1,31 +1,74 @@
+/**
+ * useVisualization.js — AETHER ACM v2
+ *
+ * Primary:  WebSocket push stream (useWebSocket) — sub-second latency.
+ * Fallback: HTTP polling at 1 Hz — activates if WS is not connected after
+ *           FALLBACK_DELAY_MS.
+ *
+ * Returned snapshot is always the freshest data regardless of transport.
+ * `wsConnected` lets downstream components show the connection badge.
+ */
+
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useWebSocket } from './useWebSocket';
 import { api } from '../lib/api';
 
-const POLL_INTERVAL_MS = 1000; // 1 Hz polling
+const POLL_INTERVAL_MS  = 1000;   // HTTP fallback poll rate
+const FALLBACK_DELAY_MS = 3000;   // Wait this long for WS before starting poll
 
 export function useVisualization() {
-  const [snapshot, setSnapshot] = useState(null);
-  const [error, setError]       = useState(null);
-  const [loading, setLoading]   = useState(true);
-  const timerRef = useRef(null);
+  const { snapshot: wsSnapshot, connected: wsConnected, error: wsError } = useWebSocket();
 
-  const fetchSnapshot = useCallback(async () => {
+  // HTTP fallback state
+  const [httpSnapshot, setHttpSnapshot] = useState(null);
+  const [httpError,    setHttpError]    = useState(null);
+  const [httpLoading,  setHttpLoading]  = useState(true);
+  const pollRef   = useRef(null);
+  const startedRef = useRef(false);
+
+  const fetchHttp = useCallback(async () => {
     try {
       const data = await api.snapshot();
-      setSnapshot(data);
-      setError(null);
+      setHttpSnapshot(data);
+      setHttpError(null);
     } catch (e) {
-      setError(e.message);
+      setHttpError(e.message);
     } finally {
-      setLoading(false);
+      setHttpLoading(false);
     }
   }, []);
 
+  // Start HTTP polling only if WS fails to connect within FALLBACK_DELAY_MS
   useEffect(() => {
-    fetchSnapshot();
-    timerRef.current = setInterval(fetchSnapshot, POLL_INTERVAL_MS);
-    return () => clearInterval(timerRef.current);
-  }, [fetchSnapshot]);
+    const timer = setTimeout(() => {
+      if (!wsConnected && !startedRef.current) {
+        startedRef.current = true;
+        fetchHttp();
+        pollRef.current = setInterval(fetchHttp, POLL_INTERVAL_MS);
+      }
+    }, FALLBACK_DELAY_MS);
 
-  return { snapshot, error, loading, refetch: fetchSnapshot };
+    return () => clearTimeout(timer);
+  }, [wsConnected, fetchHttp]);
+
+  // If WS later connects, stop the HTTP poll
+  useEffect(() => {
+    if (wsConnected && pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+      startedRef.current = false;
+    }
+  }, [wsConnected]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => clearInterval(pollRef.current);
+  }, []);
+
+  // Compose the best available data
+  const snapshot = wsSnapshot ?? httpSnapshot;
+  const error    = wsConnected ? null : (httpError ?? wsError);
+  const loading  = !snapshot;
+
+  return { snapshot, error, loading, wsConnected };
 }

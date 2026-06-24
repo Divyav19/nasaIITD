@@ -100,7 +100,7 @@ export default function ManeuverTimeline({ snapshot }) {
                     <div key={burn.burn_id}>
                       {/* Burn block */}
                       <div
-                        className={`gantt-block ${isRecovery ? 'recovery' : isEvasion ? 'evasion' : 'evasion'}`}
+                        className={`gantt-block ${isRecovery ? 'recovery' : isEvasion ? 'evasion' : 'burn'}`}
                         style={{
                           left: tsToX(bTs),
                           width: '32px',

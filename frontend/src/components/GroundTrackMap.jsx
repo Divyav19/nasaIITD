@@ -6,43 +6,48 @@ import {
 } from '../lib/geoUtils';
 
 const BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
-const TRAIL_POINTS = 120; // rendering budget per satellite
-const trailHistory = {}; // global trail buffer
+const TRAIL_POINTS = 120;   // kept for real-time pos accumulation (fallback only)
+const trailHistory = {};    // real-time rolling trail (fallback)
 
-// Ground stations (visual markers - major stations)
+// Ground stations (visual markers)
 const GROUND_STATIONS = [
   { name: 'Goldstone', lat: 35.43, lon: -116.89 },
-  { name: 'Madrid', lat: 40.43, lon: -4.25 },
+  { name: 'Madrid',   lat: 40.43, lon: -4.25 },
   { name: 'Canberra', lat: -35.40, lon: 148.98 },
   { name: 'Svalbard', lat: 78.23, lon: 15.40 },
-  { name: 'McMurdo', lat: -77.85, lon: 166.67 },
+  { name: 'McMurdo',  lat: -77.85, lon: 166.67 },
 ];
 
-// Cache for future trajectory data per sat
-const futureTrackCache = {};
+// Per-satellite trajectory cache (future + past tracks, 30s TTL)
+const trajCache = {};   // { [sat_id]: { future, past, ts } }
 
 export default function GroundTrackMap({ snapshot, selectedSat, onSelectSat }) {
   const canvasRef = useRef(null);
   const [futureTrack, setFutureTrack] = useState(null);
+  const [pastTrack,   setPastTrack]   = useState(null);
 
-  // Fetch future trajectory when selected satellite changes
+  // Fetch trajectory (both future + past) when selected satellite changes
   useEffect(() => {
-    if (!selectedSat) { setFutureTrack(null); return; }
+    if (!selectedSat) { setFutureTrack(null); setPastTrack(null); return; }
     let cancelled = false;
 
-    // Check cache freshness (30s)
-    const cached = futureTrackCache[selectedSat];
+    // Cache hit
+    const cached = trajCache[selectedSat];
     if (cached && Date.now() - cached.ts < 30000) {
-      setFutureTrack(cached.data);
+      setFutureTrack(cached.future);
+      setPastTrack(cached.past);
       return;
     }
 
     fetch(`${BASE}/api/insight/${encodeURIComponent(selectedSat)}/trajectory?minutes=90`)
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (!cancelled && data?.future_track_90min) {
-          futureTrackCache[selectedSat] = { data: data.future_track_90min, ts: Date.now() };
-          setFutureTrack(data.future_track_90min);
+        if (!cancelled && data) {
+          const future = data.future_track_90min ?? [];
+          const past   = data.past_track_90min   ?? [];
+          trajCache[selectedSat] = { future, past, ts: Date.now() };
+          setFutureTrack(future);
+          setPastTrack(past);
         }
       })
       .catch(() => {});
@@ -192,7 +197,39 @@ export default function GroundTrackMap({ snapshot, selectedSat, onSelectSat }) {
       }
     }
 
-    // ── Future trajectory (dashed cyan, 90 min forward) ───────────────────
+    // ── Past track: 90-min historical trail from API ─────────────────────
+    // When available, prefer the server-computed past track (full 90 min).
+    // Fallback: use the rolling trailHistory buffer (~2 min realtime).
+    if (pastTrack && pastTrack.length > 1) {
+      const selSat = snapshot.satellites?.find(s => s.id === selectedSat);
+      const trailColor = selSat ? (STATUS_COLORS[selSat.status] || '#20b4ff') : '#20b4ff';
+
+      ctx.save();
+      ctx.lineWidth = 1.3;
+      let prevLon2 = null;
+      ctx.beginPath();
+      let trailStarted = false;
+      pastTrack.forEach((pt, idx) => {
+        const alpha = 0.12 + 0.55 * (idx / pastTrack.length); // fade from dim to bright
+        const [px, py] = proj(pt.lat, pt.lon);
+        // Break line on antimeridian crossing
+        if (prevLon2 !== null && Math.abs(pt.lon - prevLon2) > 180) {
+          ctx.strokeStyle = `${trailColor}${Math.round(alpha * 255).toString(16).padStart(2,'0')}`;
+          ctx.stroke();
+          ctx.beginPath();
+          trailStarted = false;
+        }
+        if (!trailStarted) { ctx.moveTo(px, py); trailStarted = true; }
+        else ctx.lineTo(px, py);
+        prevLon2 = pt.lon;
+      });
+      const finalAlpha = 0.67;
+      ctx.strokeStyle = `${trailColor}${Math.round(finalAlpha * 255).toString(16).padStart(2,'0')}`;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // ── Future trajectory (dashed, 90 min forward) ────────────────────────
     if (futureTrack && futureTrack.length > 1) {
       const selColor = selectedSat
         ? (STATUS_COLORS[snapshot.satellites?.find(s => s.id === selectedSat)?.status] || STATUS_COLORS.NOMINAL)

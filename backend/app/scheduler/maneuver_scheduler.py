@@ -82,6 +82,19 @@ class ManeuverScheduler:
         remaining_mass = m_current
         scheduled_burns: list[ScheduledBurn] = []
 
+        # ── Guard: check cooldown against last PENDING burn already in queue ──
+        # This prevents bypassing the 600s cooldown by submitting a new sequence
+        # that starts immediately after the current queue ends.
+        if sat_id in self._queue and self._queue[sat_id] and burns:
+            last_queued = max(self._queue[sat_id], key=lambda b: b.burn_time)
+            first_new_time: datetime = burns[0]["burn_time"]
+            queued_gap = (first_new_time - last_queued.burn_time).total_seconds()
+            if queued_gap < THERMAL_COOLDOWN:
+                return False, (
+                    f"First burn violates 600s cooldown against last queued burn "
+                    f"(gap = {queued_gap:.0f}s, required ≥ {THERMAL_COOLDOWN:.0f}s)"
+                ), remaining_fuel
+
         prev_time: Optional[datetime] = self._last_burn_time.get(sat_id)
 
         for b in burns:

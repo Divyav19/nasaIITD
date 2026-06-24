@@ -131,24 +131,23 @@ def compute_transverse_evasion_burn(
     dv_budget_kmps: float = 0.010
 ) -> np.ndarray:
     """
-    Compute a transverse (in-track) evasion burn in ECI frame.
+    Compute a pure T-direction (in-track / transverse) evasion burn.
 
-    Prefers transverse direction to minimise orbital energy change
-    while achieving maximum radial separation. Avoids normal burns.
+    ΔV is built in RTN frame as [0, +budget, 0] then rotated to ECI via
+    rtn_to_eci_dv().  This guarantees zero radial (R) and zero out-of-plane
+    (N) contamination — the canonical way to satisfy the RTN→ECI constraint.
 
     Args:
         r_eci:          Current position [km]
         v_eci:          Current velocity [km/s]
-        dv_budget_kmps: ΔV magnitude to use [km/s] (default 10 m/s)
+        dv_budget_kmps: ΔV magnitude to use [km/s] (default 10 m/s = 0.010 km/s)
 
     Returns:
         ΔV vector in ECI frame [km/s]
     """
-    from .coordinates import eci_to_rtn_matrix
-    M = eci_to_rtn_matrix(r_eci, v_eci)
-    # Transverse direction is row 1 of M (t_hat), apply in ECI
-    t_hat_eci = M[1, :]
-    return dv_budget_kmps * t_hat_eci
+    from .coordinates import rtn_to_eci_dv
+    dv_rtn = np.array([0.0, dv_budget_kmps, 0.0])  # pure transverse (T)
+    return rtn_to_eci_dv(dv_rtn, r_eci, v_eci)
 
 
 def compute_recovery_burn(
@@ -158,8 +157,12 @@ def compute_recovery_burn(
     dv_budget_kmps: float = 0.010
 ) -> np.ndarray:
     """
-    Compute a recovery burn pointing from current position toward
-    the nominal orbital slot, projected onto the transverse direction.
+    Compute a recovery burn pointing from current position toward the nominal
+    orbital slot, projected onto the RTN T+N plane, then rotated back to ECI.
+
+    Builds the error vector in RTN, zeroes the R (radial) component to avoid
+    energy-wasting radial excursions, normalises, scales by budget, then
+    applies rtn_to_eci_dv() for the canonical RTN→ECI frame rotation.
 
     Args:
         r_eci:          Current position [km]
@@ -170,9 +173,19 @@ def compute_recovery_burn(
     Returns:
         ΔV vector in ECI frame [km/s]
     """
-    # Direction toward nominal slot
+    from .coordinates import eci_to_rtn_matrix, rtn_to_eci_dv
+
     error_vec = r_nominal_eci - r_eci
     if np.linalg.norm(error_vec) < 1e-9:
         return np.zeros(3)
 
-    return dv_budget_kmps * (error_vec / np.linalg.norm(error_vec))
+    # Project position error into RTN — keep only T (1) and N (2) components
+    M = eci_to_rtn_matrix(r_eci, v_eci)
+    error_rtn = M @ error_vec
+    error_rtn_proj = np.array([0.0, error_rtn[1], error_rtn[2]])  # zero radial
+    mag = np.linalg.norm(error_rtn_proj)
+    if mag < 1e-12:
+        return np.zeros(3)
+
+    dv_rtn = dv_budget_kmps * (error_rtn_proj / mag)
+    return rtn_to_eci_dv(dv_rtn, r_eci, v_eci)

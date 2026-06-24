@@ -1,5 +1,6 @@
-"""POST /api/telemetry — Ingest high-volume orbital telemetry objects."""
+"""POST /api/telemetry — Async ingest of high-volume orbital telemetry objects."""
 
+import asyncio
 from fastapi import APIRouter
 from pydantic import BaseModel
 from datetime import datetime
@@ -34,24 +35,29 @@ class TelemetryResponse(BaseModel):
     active_cdm_warnings: int
 
 
-@router.post("/telemetry", response_model=TelemetryResponse)
+@router.post("/telemetry", response_model=TelemetryResponse, status_code=202)
 async def ingest_telemetry(payload: TelemetryRequest):
     """
-    Ingest a batch of orbital objects (satellites and/or debris).
-    Updates or creates records in the simulation state.
+    Asynchronously ingest a batch of orbital objects (satellites and/or debris).
+
+    CPU-bound bulk state update dispatched to a thread pool via asyncio.to_thread
+    so the ASGI event loop and WebSocket push stream remain unblocked even during
+    10,000+ object batches.  Returns HTTP 202 Accepted.
     """
     engine = get_engine()
 
-    raw_objects = []
-    for obj in payload.objects:
-        raw_objects.append({
-            "id": obj.id,
+    raw_objects = [
+        {
+            "id":   obj.id,
             "type": obj.type,
-            "r": {"x": obj.r.x, "y": obj.r.y, "z": obj.r.z},
-            "v": {"x": obj.v.x, "y": obj.v.y, "z": obj.v.z},
-        })
+            "r":    {"x": obj.r.x, "y": obj.r.y, "z": obj.r.z},
+            "v":    {"x": obj.v.x, "y": obj.v.y, "z": obj.v.z},
+        }
+        for obj in payload.objects
+    ]
 
-    count = engine.ingest_telemetry(raw_objects, payload.timestamp)
+    # Dispatch the bulk state-update loop to thread — non-blocking
+    count = await asyncio.to_thread(engine.ingest_telemetry, raw_objects, payload.timestamp)
     cdm_count = engine.last_report.active_cdm_count() if engine.last_report else 0
 
     return TelemetryResponse(

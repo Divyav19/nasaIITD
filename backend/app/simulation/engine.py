@@ -23,7 +23,8 @@ log = logging.getLogger("aether.engine")
 from ..physics.constants import (
     MU, R_EARTH, M_DRY, M_FUEL_INIT, M_WET_INIT,
     D_CRIT, D_WARNING, STATION_KEEPING_BOX,
-    THERMAL_COOLDOWN, FUEL_RESERVE_FRACTION, DEFAULT_STEP
+    THERMAL_COOLDOWN, FUEL_RESERVE_FRACTION, DEFAULT_STEP,
+    MAX_DV  # Required by _raise_to_graveyard()
 )
 from ..physics.propagator import propagate, propagate_trajectory, keplerian_to_eci
 from ..physics.maneuver import (
@@ -385,11 +386,63 @@ class SimulationEngine:
         return count
 
     def _raise_to_graveyard(self, rec: SatelliteRecord):
-        """Apply a small radial burn to raise apogee by ~200 km for graveyard transition."""
-        r_hat = rec.state[:3] / np.linalg.norm(rec.state[:3])
-        # Small radial burn — graveyard delta-v (within constraints)
-        rec.state[3:] += 0.005 * r_hat
-        rec.status = "GRAVEYARD"
+        """
+        Automated Graveyard Sequence (spec requirement: 5% fuel threshold).
+
+        Two-burn sequence via the maneuver scheduler:
+          Burn 1: +MAX_DV km/s transverse at T+10s  (perigee raise)
+          Burn 2: +0.008 km/s transverse at T+620s  (apogee circularise)
+
+        Both burns go through the scheduler so:
+          - Tsiolkovsky fuel deduction is applied correctly
+          - 600s cooldown is enforced between burns
+          - Gantt chart shows the full graveyard sequence
+        """
+        from ..physics.maneuver import compute_transverse_evasion_burn
+
+        log.info(f"[Engine] Initiating GRAVEYARD sequence for {rec.sat_id} "
+                 f"(fuel={rec.m_fuel:.2f} kg)")
+
+        r_eci = rec.state[:3]
+        v_eci = rec.state[3:]
+
+        # ── Burn 1: perigee-raise transverse impulse at T + signal delay ───────
+        e1_dv = compute_transverse_evasion_burn(r_eci, v_eci, dv_budget_kmps=MAX_DV)
+        t1 = self.sim_time + timedelta(seconds=10.0)
+
+        # ── Burn 2: apogee-circularise after cooldown ───────────────────────────
+        e2_dv = compute_transverse_evasion_burn(r_eci, v_eci, dv_budget_kmps=0.008)
+        t2 = t1 + timedelta(seconds=THERMAL_COOLDOWN + 10.0)
+
+        burns = [
+            {
+                "burn_id":   f"GY_RAISE_{rec.sat_id}_{self.sim_time.isoformat()}",
+                "burn_time": t1,
+                "dv_eci":    e1_dv,
+            },
+            {
+                "burn_id":   f"GY_CIRC_{rec.sat_id}_{self.sim_time.isoformat()}",
+                "burn_time": t2,
+                "dv_eci":    e2_dv,
+            },
+        ]
+
+        accepted, msg, _ = self.scheduler.schedule(
+            sat_id=rec.sat_id,
+            burns=burns,
+            current_sim_time=self.sim_time,
+            m_current=rec.m_total,
+            m_fuel=rec.m_fuel,
+            has_los=True,  # system command bypasses LOS gate
+        )
+
+        if accepted:
+            log.info(f"[Engine] GRAVEYARD sequence scheduled for {rec.sat_id}: 2 burns")
+            rec.status = "GRAVEYARD"          # only set GRAVEYARD on acceptance
+        else:
+            # Insufficient fuel even for one burn — mark DEAD immediately.
+            log.warning(f"[Engine] GRAVEYARD rejected for {rec.sat_id}: {msg} — marking DEAD")
+            rec.status = "DEAD"
 
     def _update_statuses(self, report: ConjunctionReport):
         """Update satellite operational statuses after each step."""
