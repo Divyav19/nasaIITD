@@ -1,236 +1,392 @@
-# Project AETHER — Autonomous Constellation Manager
+<div align="center">
 
-AETHER is an integrated orbital operations sandbox built to model and manage low Earth orbit constellations with real telemetry ingestion, conjunction detection, autonomous evasion maneuver planning, and web-based situational awareness.
+![AETHER ACM Banner](./docs/banner.png)
 
-## What this project is
+# AETHER — Autonomous Constellation Manager
 
-- **Backend**: FastAPI service implementing a physics-aware simulation engine, real TLE ingestion, maneuver scheduling, and visualization snapshot APIs.
-- **Frontend**: React + Vite dashboard for live orbital maps, telemetry panels, collision warnings, delta-v cost charts, maneuver timelines, and explainable AI insights.
-- **Deployment**: Docker-ready monorepo with a single docker-compose.yml service exposing the application on port 8000.
+**Real-time orbital simulation platform with AI-driven collision avoidance**
 
-## Why it matters
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Vercel-black?style=for-the-badge&logo=vercel)](https://frontend-7hohgjde1-rishabh8.vercel.app)
+[![Backend API](https://img.shields.io/badge/⚡_Backend_API-Render-46E3B7?style=for-the-badge&logo=render)](https://aether-acm-backend.onrender.com/docs)
+[![GitHub](https://img.shields.io/badge/GitHub-Divyav19%2FnasaIITD-181717?style=for-the-badge&logo=github)](https://github.com/Divyav19/nasaIITD)
 
-AETHER is designed as an Autonomous Constellation Manager (ACM). It is not just a visualization tool — it is a simulation platform that:
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite)](https://vitejs.dev)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python)](https://python.org)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)](https://docker.com)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
-- ingests real orbital telemetry and TLE-based object catalogs
-- propagates orbital states with J2-perturbed RK4 numerical integration
-- detects conjunctions using KD-Tree acceleration for scalable collision screening
-- schedules automatic evasive burns and recovery maneuvers
-- exposes a modern web UI for situational awareness and control
+</div>
 
-## Key features
+---
 
-- **Real TLE seeding**: loads Iridium, NOAA, Cosmos-2251, and other objects from CelesTrak.
-- **High-fidelity propagation**: RK4 integrator with Earth J2 perturbation.
-- **Conjunction detection**: KD-Tree based sub-O(N²) screening for satellite-debris close approaches.
-- **Autonomous maneuvering**: automatic evasion scheduling plus manual maneuver upload.
-- **Live dashboard**: ground track, fleet heatmap, collision warnings, telemetry, and maneuver timeline.
-- **API-first design**: FastAPI routes for simulation control, telemetry ingestion, and visualization snapshots.
-- **Docker support**: full build and serve flow in one container.
+## 🌍 Live Demo
 
-## Architecture overview
+> **🔗 [https://frontend-7hohgjde1-rishabh8.vercel.app](https://frontend-7hohgjde1-rishabh8.vercel.app)**
 
-### Backend
+The frontend is deployed on **Vercel** and the backend API on **Render** (free tier — first load may take ~30s to wake up).
 
-- ackend/app/main.py
-  - FastAPI application entrypoint.
-  - Registers API routers for telemetry, maneuvers, simulation stepping, visualization, and insight.
-  - Serves the compiled frontend in production Docker builds.
-  - Provides health and root status endpoints.
+---
 
-- ackend/app/simulation/engine.py
-  - Central simulation state manager.
-  - Maintains satellite and debris records.
-  - Handles real-time telemetery ingestion, step advancement, maneuver execution, and snapshot export.
+## 🛰️ What is AETHER?
 
-- ackend/app/physics/
-  - Orbital physics utilities, including constants, coordinate transforms, propagation, and burn computation.
+AETHER is a full-stack **Autonomous Constellation Manager (ACM)** — a real-time orbital simulation platform built for mission operations. It ingests live TLE data, runs high-fidelity physics propagation, detects collision threats, and autonomously schedules evasion maneuvers.
 
-- ackend/app/conjunction/
-  - Fast conjunction detection logic using spatial indexing.
+This is not a simple visualization tool. AETHER is an end-to-end spacecraft operations platform:
 
-- ackend/app/scheduler/
-  - Maneuver validation and scheduling logic.
+| Capability | Details |
+|---|---|
+| **Real TLE Ingestion** | Live data from CelesTrak — Iridium, NOAA, Cosmos-2251 debris, ISS |
+| **J2-Perturbed RK4** | 4th-order Runge-Kutta integration with Earth oblateness perturbation |
+| **KD-Tree Conjunction Detection** | Sub-O(N²) spatial screening of 2000+ debris objects |
+| **Autonomous Evasion** | Auto-schedules Tsiolkovsky-optimal burns and recovery maneuvers |
+| **WebSocket Push Stream** | Sub-second live updates to the dashboard |
+| **Explainable AI Insights** | TCA prediction, multi-strategy scoring, anti-gravity phasing |
+| **Fleet Heatmap** | Thermal risk visualization across the entire constellation |
 
-- ackend/app/data/
-  - TLE fetcher and local data caches for fallback.
+---
 
-- ackend/app/api/
-  - Clean REST API boundaries for frontend integration.
+## 🏗️ Architecture
 
-### Frontend
+![Architecture Diagram](./docs/architecture.png)
 
-- rontend/src/App.jsx
-  - Main UI shell and state orchestration.
-  - Includes step controls, live metrics, and tabbed dashboards.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        AETHER ACM Stack                         │
+├──────────────────┬──────────────────────┬───────────────────────┤
+│  React + Vite    │    FastAPI Backend    │    Data Sources       │
+│  (Frontend)      │    (Python 3.11)     │    (CelesTrak)        │
+│                  │                      │                       │
+│  Ground Track    │  Simulation Engine   │  Iridium TLEs         │
+│  Bullseye CDM    │  Physics (RK4 + J2)  │  NOAA Satellites      │
+│  Fleet Heatmap   │  KD-Tree Detector    │  Cosmos-2251 Debris   │
+│  ΔV Cost Chart   │  Maneuver Scheduler  │  ISS / Stations       │
+│  AI Insight      │  WebSocket Stream    │  Local Cache Fallback │
+│  Multi-Sim View  │  REST API (FastAPI)  │                       │
+└──────────────────┴──────────────────────┴───────────────────────┘
+         ↕ VITE_API_BASE             ↕ ws://backend/api/ws/snapshot
+    (HTTP REST + WebSocket)      (Push stream, 1Hz, auto-reconnect)
+```
 
-- rontend/src/components/
-  - Visual components for ground tracks, maneuver timelines, fleet heatmaps, CDM warnings, and explainable insights.
+---
 
-- rontend/src/hooks/
-  - Data fetching hooks that consume backend snapshot and simulation APIs.
+## ✨ Features Breakdown
 
-### Deployment
+### 🗺️ Ground Track Map (Mercator)
+- Real-time satellite positions on an interactive world map
+- 90-minute past trail + projected future track
+- Color-coded by satellite status: NOMINAL / EVASION / RECOVERY / GRAVEYARD
+- Debris field overlay with CDM warning chips
 
-- Dockerfile
-  - Builds a single image containing Python backend and React frontend.
-  - Installs Python 3.11, Node.js 20, backend requirements, runs frontend build, and launches Uvicorn.
+### ⊕ Conjunction Bullseye
+- B-plane visualization of close approach geometry
+- Risk rings at CRITICAL (0.5 km), WARNING (2 km), and SAFE thresholds
+- Per-debris distance indicators
 
-- docker-compose.yml
-  - Defines service ether-acm on port 8000.
-  - Includes healthcheck against /health.
+### ⚡ Explainable AI Panel
+- **TCA Prediction**: Time of Closest Approach for next 24 hours
+- **Strategy Comparison**: Anti-gravity phasing vs Standard vs Max-ΔV
+- **Multi-objective Scoring**: Fuel efficiency × Safety × Uptime
+- **Anti-gravity Insight**: 80% fuel saving via transverse phasing burns
 
-## Setup & local development
+### ◈ Fleet Heatmap
+- Thermal risk matrix across the entire constellation
+- Identifies hotspot satellites and time windows
 
-### Prerequisites
+### ▷ Maneuver Timeline
+- Gantt-style visualization of scheduled burns
+- EVASION → COOLDOWN → RECOVERY burn sequence display
 
+### △ ΔV Cost Chart
+- Cumulative delta-v expenditure per satellite
+- Fuel remaining vs mission lifetime analysis
+
+### ⟁ Multi-Future Sim View
+- Parallel simulation branches for strategy comparison
+- Anti-gravity phasing vs alternative scenarios
+
+---
+
+## 🚀 Quick Start
+
+### Option 1 — Docker (Recommended)
+
+```bash
+git clone https://github.com/Divyav19/nasaIITD.git
+cd nasaIITD
+docker compose up --build
+```
+
+Open → **http://localhost:8000**
+
+---
+
+### Option 2 — Local Development
+
+#### Prerequisites
 - Python 3.11+
 - Node.js 20+
 - npm
-- Docker / Docker Compose (for container deployment)
 
-### Backend development
+#### Backend
 
-`ash
+```bash
 cd backend
-python -m pip install -r requirements.txt
+pip install -r requirements.txt
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-`
+```
 
-Then open:
+- API Docs: http://localhost:8000/docs
+- Health Check: http://localhost:8000/health
 
-- API docs: http://localhost:8000/docs
-- Health endpoint: http://localhost:8000/health
+#### Frontend
 
-### Frontend development
-
-`ash
+```bash
 cd frontend
 npm install
 npm run dev
-`
+```
 
-Open the Vite app at the address shown in the terminal, commonly http://localhost:5173.
+Open → **http://localhost:5173**
 
-### Full Docker deployment
+---
 
-`ash
-docker compose up --build
-`
+## 🌐 Cloud Deployment
 
-The service will be available at http://localhost:8000 if the container is healthy.
+### Frontend → Vercel
 
-## API summary
+```bash
+cd frontend
+npx vercel deploy --yes
+```
 
-### Health & root
+Set environment variable in Vercel dashboard:
+```
+VITE_API_BASE = https://your-render-backend.onrender.com
+```
 
-- GET /health
-  - Returns engine status, simulation time, satellite and debris counts.
+### Backend → Render.com
 
-- GET /
-  - Returns metadata, engine summary, and available endpoint hints.
+1. Go to [render.com](https://render.com) → New Web Service
+2. Connect `Divyav19/nasaIITD`
+3. Set:
+   - **Runtime**: Python 3
+   - **Build**: `pip install -r backend/requirements.txt`
+   - **Start**: `python -m uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT`
+   - **Instance**: Free
 
-### Simulation
+---
 
-- POST /api/simulate/step
-  - Advance simulation by step_seconds.
-  - Executes burns, propagates objects, detects conjunctions, and schedules evasions.
+## 📡 API Reference
 
-### Visualization
+### Health & Status
 
-- GET /api/visualization/snapshot
-  - Returns full frontend snapshot including satellite and debris positions, active CDM warnings, scheduled burns, and summary statistics.
+```http
+GET /health
+```
+```json
+{
+  "status": "OK",
+  "sim_time": "2026-06-24T12:00:00Z",
+  "satellites": 52,
+  "debris": 2000
+}
+```
 
-### Maneuver scheduling
+---
 
-- POST /api/maneuver/schedule
-  - Validate and queue operator-defined burn sequences for a satellite.
+### Simulation Control
 
-### Telemetry
+```http
+POST /api/simulate/step
+Content-Type: application/json
 
-- POST /api/telemetry
-  - Ingest external telemetry objects into the simulation engine.
+{ "step_seconds": 3600 }
+```
 
-## Project structure
+Dispatched to a thread pool — event loop never blocks. Returns:
+```json
+{
+  "status": "ok",
+  "new_timestamp": "2026-06-24T13:00:00Z",
+  "collisions_detected": 0,
+  "maneuvers_executed": 2,
+  "active_cdm_warnings": 5
+}
+```
 
-`	ext
-.
-├── Dockerfile
-├── docker-compose.yml
-├── backend
+---
+
+### Visualization Snapshot
+
+```http
+GET /api/visualization/snapshot
+```
+
+Returns full mission state: satellite positions, debris, CDM warnings, burn schedules, and stats.
+
+---
+
+### Telemetry Ingestion
+
+```http
+POST /api/telemetry
+```
+
+Ingest external orbital state vectors into the live simulation engine.
+
+---
+
+### Maneuver Scheduling
+
+```http
+POST /api/maneuver/schedule
+```
+
+Queue operator-defined burn sequences with fuel validation.
+
+---
+
+### Explainable AI Insight
+
+```http
+GET /api/insight/{sat_id}
+```
+
+Returns TCA predictions, risk assessment, strategy comparison, and anti-gravity phasing analysis.
+
+---
+
+### WebSocket Stream
+
+```
+ws://backend/api/ws/snapshot
+```
+
+Real-time push of full visualization snapshot at ~1 Hz with automatic reconnect.
+
+---
+
+## 📁 Project Structure
+
+```
+nasaIITD/
+├── 📄 Dockerfile                    # Full-stack Docker image
+├── 📄 docker-compose.yml            # Local orchestration
+├── 📄 render.yaml                   # Render.com deployment config
+├── 📁 docs/                         # README assets
+│   ├── banner.png
+│   └── architecture.png
+├── 📁 backend/
 │   ├── requirements.txt
-│   └── app
-│       ├── main.py
-│       ├── api
-│       ├── conjunction
-│       ├── data
-│       ├── ground_station
-│       ├── physics
-│       ├── scheduler
-│       └── simulation
-└── frontend
-    ├── package.json
+│   └── app/
+│       ├── main.py                  # FastAPI entrypoint
+│       ├── api/
+│       │   ├── telemetry.py         # POST /api/telemetry
+│       │   ├── simulate.py          # POST /api/simulate/step
+│       │   ├── visualization.py     # GET  /api/visualization/snapshot
+│       │   ├── maneuver.py          # POST /api/maneuver/schedule
+│       │   ├── insight.py           # GET  /api/insight/{sat_id}
+│       │   ├── ws_stream.py         # WS   /api/ws/snapshot
+│       │   └── admin.py             # POST /api/admin/refresh-tle
+│       ├── simulation/engine.py     # Central sim state manager
+│       ├── physics/
+│       │   ├── propagator.py        # RK4 + J2 integrator
+│       │   ├── maneuver.py          # Tsiolkovsky burn model
+│       │   ├── coordinates.py       # ECI ↔ LLA transforms
+│       │   └── constants.py         # Physical constants
+│       ├── conjunction/detector.py  # KD-Tree conjunction screening
+│       ├── scheduler/               # Maneuver validation & queuing
+│       └── data/                    # TLE fetcher + local cache
+└── 📁 frontend/
+    ├── vercel.json                  # Vercel deployment config
     ├── vite.config.js
-    └── src
-        ├── App.jsx
-        ├── components
-        ├── hooks
-        └── lib
-`
+    ├── package.json
+    └── src/
+        ├── App.jsx                  # Main UI shell
+        ├── components/
+        │   ├── GroundTrackMap.jsx   # Mercator orbital map
+        │   ├── ConjunctionBullseye.jsx
+        │   ├── FleetHeatmap.jsx
+        │   ├── ManeuverTimeline.jsx
+        │   ├── DVChart.jsx
+        │   ├── ExplainableAIPanel.jsx
+        │   └── MultiFutureSimView.jsx
+        ├── hooks/
+        │   ├── useVisualization.js  # WS primary + HTTP fallback
+        │   ├── useWebSocket.js      # WS with exponential backoff
+        │   └── useSimulation.js     # Sim step controls
+        └── lib/
+            ├── api.js               # REST client (VITE_API_BASE)
+            └── geoUtils.js          # Mercator projection helpers
+```
 
-## Design analysis by aspect
+---
 
-### Simulation engine
+## 🔬 Physics Engine Details
 
-- Uses a global SimulationEngine singleton to keep an in-memory state.
-- Seeds real satellite and debris catalogs from CelesTrak TLE data when available.
-- Supports telemetry ingestion to update or add satellite/debris state vectors.
-- Advances time using discrete steps and applies both planned and automatic maneuvers.
+### RK4 + J2 Propagator
 
-### Physics model
+The propagator models orbital motion with Earth's oblateness perturbation (J2 = 1.08263 × 10⁻³):
 
-- Includes Earth gravity perturbation via the J2 zonal harmonic.
-- Propagates objects using a fourth-order Runge-Kutta integrator.
-- Converts between classical orbital elements and Earth-centered inertial coordinates.
+```
+ẍ = -μ/r³ · x · [1 - (3J2·Re²/2r²)(5(z/r)² - 1)]
+ÿ = -μ/r³ · y · [1 - (3J2·Re²/2r²)(5(z/r)² - 1)]
+z̈ = -μ/r³ · z · [1 - (3J2·Re²/2r²)(5(z/r)² - 3)]
+```
 
-### Conjunction detection
+### KD-Tree Conjunction Detection
 
-- Uses spatial acceleration structures rather than brute-force N² checks.
-- Detects active collision warnings and highlights them in the UI.
-- Can trigger automatic avoidance burns on behalf of satellites.
+- Phase 1: KD-Tree spatial pre-filter — 500 km search radius reduces N=2000 → ~5-30 candidates
+- Phase 2: Full RK4 propagation of candidates only
+- Phase 3: Early-exit on monotonic divergence
+- **Result**: O((N+M) log N) vs brute-force O(N·M·T)
 
-### Maneuver scheduling
+### Anti-Gravity Phasing
 
-- Validates fuel and line-of-sight requirements.
-- Tracks satellite fuel and total delta-v usage.
-- Exposes both manual operator scheduling and autonomous recovery.
+Instead of large radial burns, AETHER uses tiny **2 m/s transverse ΔV** to shift orbital period by ~3 s/orbit. Over 1–2 orbits (~100 min), along-track drift accumulates sufficient separation for safe debris passage — **80% less fuel** than standard evasion.
 
-### Frontend UI
+---
 
-- Built with React and Vite for fast iteration.
-- Presents a rich mission operations dashboard with map, telemetry, and analytics.
-- Uses modular components to separate ground track, timeline, heatmap, and AI insight views.
-- Provides a multi-tab panel layout for operational awareness.
+## 🛠️ Tech Stack
 
-### Deployment & packaging
+| Layer | Technology |
+|---|---|
+| **Frontend Framework** | React 19 + Vite 8 |
+| **Styling** | Vanilla CSS with CSS Custom Properties |
+| **Backend Framework** | FastAPI 0.100+ |
+| **Physics** | NumPy + SciPy |
+| **Real-time** | WebSocket (native FastAPI) |
+| **Orbital Data** | CelesTrak TLE API |
+| **Containerization** | Docker + Docker Compose |
+| **Frontend Hosting** | Vercel |
+| **Backend Hosting** | Render.com |
 
-- Single Docker image contains both backend and frontend compiled assets.
-- Docker Compose simplifies local orchestration with health monitoring.
-- Production mode serves built SPA assets from the FastAPI container.
+---
 
-## Notes
+## 🤝 Contributing
 
-- The backend is intentionally API-first, making it suitable for future mobile or CLI clients.
-- The frontend is decoupled and can run in development mode against the backend via CORS.
-- Local cache files under ackend/app/data/cache provide resilient fallback data if TLE fetching fails.
+1. Fork the repo
+2. Create a feature branch: `git checkout -b feat/your-feature`
+3. Commit changes: `git commit -m "feat: add your feature"`
+4. Push: `git push origin feat/your-feature`
+5. Open a Pull Request
 
-## Next steps / extension ideas
+---
 
-- Add authentication and role-based operator access.
-- Export conjunction reports and maneuver plans.
-- Extend to multi-orbit constellation management and multi-spacecraft mission plans.
-- Add unit tests for the physics engine, maneuver scheduler, and API contracts.
+## 📬 Contact
 
-## Contact
+**Divya** — [@Divyav19](https://github.com/Divyav19)
 
-For questions or contributions, open an issue or submit a pull request in this repository.
+Project Link: [https://github.com/Divyav19/nasaIITD](https://github.com/Divyav19/nasaIITD)
+
+---
+
+<div align="center">
+
+Made with 🛰️ for orbital safety
+
+**⭐ Star this repo if AETHER helped you!**
+
+</div>
