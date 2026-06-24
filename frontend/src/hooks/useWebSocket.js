@@ -17,7 +17,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 const BASE_WS = (() => {
-  const base = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000';
+  // Production: wss://aether-acm-backend.onrender.com
+  // Development: ws://localhost:8000
+  const base = import.meta.env.VITE_API_BASE ?? 'https://aether-acm-backend.onrender.com';
   // Convert http:// → ws://, https:// → wss://
   return base.replace(/^http/, 'ws');
 })();
